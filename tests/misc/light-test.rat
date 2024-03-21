@@ -1,0 +1,5 @@
+main {
+    int x = 3;
+    int y = x;
+    int q = (x + y);
+}

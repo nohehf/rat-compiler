@@ -164,6 +164,15 @@ and analyse_tds_bloc tds oia li =
    en une fonction de type AstTds.fonction *)
 (* Erreur si mauvaise utilisation des identifiants *)
 
+(* Analyse et ajoute un parametre de fonction dans la tds locale *)
+let analyse_function_param local_tds t n =
+  match chercherLocalement local_tds n with
+  | None ->
+      let info = info_to_info_ast (InfoVar (n, t, 0, "")) in
+      let _ = ajouter local_tds n info in
+      (t, info)
+  | Some _ -> raise (DoubleDeclaration n)
+
 let analyse_tds_fonction main_tds (AstSyntax.Fonction (t, n, lp, li)) =
   match chercherGlobalement main_tds n with
   | None ->
@@ -175,20 +184,12 @@ let analyse_tds_fonction main_tds (AstSyntax.Fonction (t, n, lp, li)) =
       let local_tds = creerTDSFille main_tds in
       (* creer les infos pour les parametres *)
       let info_params =
-        List.map
-          (fun (pt, pn) ->
-            ((pt, pn), info_to_info_ast (InfoVar (n, pt, 0, ""))))
-          lp
-      in
-      (* remplir local_tds avec les parametres *)
-      let _ =
-        List.iter (fun ((_, pn), info) -> ajouter local_tds pn info) info_params
+        List.map (fun (t, n) -> analyse_function_param local_tds t n) lp
       in
       (* creation / analyse du bloc *)
       let bloc = analyse_tds_bloc local_tds (Some infof) li in
       (* retour *)
-      AstTds.Fonction
-        (t, infof, List.map (fun ((pt, _), i) -> (pt, i)) info_params, bloc)
+      AstTds.Fonction (t, infof, info_params, bloc)
   | Some _ -> raise (DoubleDeclaration n)
 
 (* analyser : AstSyntax.programme -> AstTds.programme *)

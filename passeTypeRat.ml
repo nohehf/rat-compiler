@@ -40,7 +40,17 @@ let syntax_binaire_to_type_binaire op t1 t2 =
 
 let rec analyse_type_expression e =
   match e with
-  | AstTds.AppelFonction (info, expl) -> failwith "TODO"
+  | AstTds.AppelFonction (info, expl) -> (
+      let expl = List.map analyse_type_expression expl in
+      let expression_types_list = List.map snd expl in
+      match info_ast_to_info info with
+      | InfoFun (_, return_type, parameter_types) ->
+          if not (est_compatible_list expression_types_list parameter_types)
+          then
+            raise
+              (TypesParametresInattendus (expression_types_list, parameter_types))
+          else (AstType.AppelFonction (info, List.map fst expl), return_type)
+      | _ -> failwith "Unreachable")
   | AstTds.Ident info -> (
       match info_ast_to_info info with
       | InfoConst (_, _) -> (AstType.Ident info, Int)
@@ -103,7 +113,21 @@ let rec analyse_type_instruction i =
 and analyse_type_bloc li = List.map analyse_type_instruction li
 
 let analyse_type_fonction (AstTds.Fonction (return_type, info, params, bloc)) =
-  failwith "TODO"
+  let bloc = analyse_type_bloc bloc in
+  match info_ast_to_info info with
+  (* check return type, then param types *)
+  | InfoFun (_, expected_return_type, expected_params_types) ->
+      if not (est_compatible expected_return_type return_type) then
+        raise (TypeInattendu (expected_return_type, return_type))
+      else
+        let params_info = List.map snd params in
+        let _ =
+          List.iter2
+            (fun i t -> modifier_type_variable t i)
+            params_info expected_params_types
+        in
+        AstType.Fonction (info, params_info, bloc)
+  | _ -> failwith "Unreachable"
 
 let analyser (AstTds.Programme (fonctions, prog)) =
   let nf = List.map analyse_type_fonction fonctions in

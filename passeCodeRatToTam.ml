@@ -13,7 +13,15 @@ let concat_lines l = String.concat sep l
 
 let rec analyser_code_expression e =
   match e with
-  | AstType.AppelFonction (info, le) -> failwith "TODO"
+  | AstType.AppelFonction (info, le) -> (
+      match info_ast_to_info info with
+      | InfoFun (name, _, _) ->
+          concat_lines
+            [
+              concat_lines (List.map analyser_code_expression le);
+              Tam.call "SB" name;
+            ]
+      | _ -> failwith "Unreachable")
   | AstType.Ident info -> (
       match info_ast_to_info info with
       | InfoVar (_, typ, depl, reg) ->
@@ -53,8 +61,6 @@ let rec analyser_code_instruction i =
   match i with
   | AstPlacement.Declaration (info, e) -> (
       match info_ast_to_info info with
-      (* Constantes sont deja enlevees *)
-      | InfoConst (_, _) -> failwith "Unreachable"
       | InfoVar (_, typ, depl, reg) ->
           let taille = getTaille typ in
           concat_lines
@@ -63,7 +69,7 @@ let rec analyser_code_instruction i =
               analyser_code_expression e;
               Tam.store taille depl reg;
             ]
-      | InfoFun (_, _, _) -> failwith "TODO")
+      | _ -> failwith "Unreachable")
   | AstPlacement.Affectation (info, e) -> (
       match info_ast_to_info info with
       | InfoVar (_, typ, depl, reg) ->
@@ -103,16 +109,21 @@ let rec analyser_code_instruction i =
           Tam.jump label_debut;
           Tam.label label_fin;
         ]
-  | AstPlacement.Retour (e, tret, tparams) -> failwith "TODO"
+  | AstPlacement.Retour (e, tret, tparams) ->
+      concat_lines [ analyser_code_expression e; Tam.return tret tparams ]
   | AstPlacement.Empty -> ""
 
 (* todo: utiliser t *)
 and analyser_code_bloc (li, t) =
   concat_lines (List.map analyser_code_instruction li) ^ Tam.pop 0 t
 
-let analyser_code_fonction (AstPlacement.Fonction (info, li, b)) =
-  failwith "todo"
+let analyser_code_fonction (AstPlacement.Fonction (info, _, b)) =
+  match info_ast_to_info info with
+  | InfoFun (name, _, _) ->
+      concat_lines [ Tam.label name; analyser_code_bloc b; Tam.halt ]
+  | _ -> failwith "Unreachable"
 
 let analyser (AstPlacement.Programme (fonctions, prog)) =
-  getEntete () ^ sep ^ Tam.label "main" ^ sep ^ analyser_code_bloc prog
-  ^ Tam.halt
+  getEntete ()
+  ^ concat_lines (List.map analyser_code_fonction fonctions)
+  ^ Tam.label "main" ^ analyser_code_bloc prog ^ Tam.halt

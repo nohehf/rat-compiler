@@ -84,14 +84,14 @@ let rec analyse_type_instruction i =
       match info_ast_to_info i with
       | InfoVar (_, t, _, _) ->
           if not (est_compatible t et) then raise (TypeInattendu (et, t))
-          else AstType.Declaration (i, expt)
+          else AstType.Affectation (i, expt)
       | _ -> failwith "Unreachable")
   | AstTds.Affichage e -> (
       let expt, et = analyse_type_expression e in
       match et with
-      | Bool -> AstType.AffichageInt expt
+      | Bool -> AstType.AffichageBool expt
       | Int -> AstType.AffichageInt expt
-      | Rat -> AstType.AffichageInt expt
+      | Rat -> AstType.AffichageRat expt
       | Undefined -> failwith "Unreachable")
   | AstTds.Conditionnelle (c, t, e) ->
       let c, ct = analyse_type_expression c in

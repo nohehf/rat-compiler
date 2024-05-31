@@ -44,36 +44,6 @@ and analyse_placement_bloc depl reg li =
       let i', t = analyse_placement_instruction depl reg i in
       let q', t' = analyse_placement_bloc (depl + t) reg q in
       (i' :: q', t + t')
-(*
-   let placer_param depl reg info_ast =
-     let info = info_ast_to_info info_ast in
-     match info with
-     | Tds.InfoVar (_, t, _, _) ->
-         let taille = getTaille t in
-         modifier_adresse_variable (depl - taille) reg info_ast;
-         (info_to_info_ast info, taille)
-     | _ -> failwith "Unreachable"
-
-   let analyse_params reg params =
-     let rec aux depl reg _params =
-       match _params with
-       | [] -> []
-       | i :: q ->
-           let i', t = placer_param depl reg i in
-           (* on se deplace vers le bas (pour mapper sur la pile avant l'appel) *)
-           let q' = aux (depl - t) reg q in
-           i' :: q'
-     in
-     aux 0 reg params
-
-   let analyse_placement_fonction func_reg
-       (AstType.Fonction (info_ast, params, bloc)) =
-     (* On doit placer dans l'odre inverse pour consommer la pile (premier param en dernier sur la pile) *)
-     let rev_params = List.rev params in
-     let params' = analyse_params func_reg rev_params in
-     (* On deplace de 3, pour l'activation (retour, lien dynamique, lien statique) *)
-     let bloc' = analyse_placement_bloc 3 func_reg bloc in
-     AstPlacement.Fonction (info_ast, params', bloc') *)
 
 (* retourne un couple (info depl) *)
 let rec analyse_placement_fonction_param li depl =
@@ -98,7 +68,6 @@ let analyse_placement_fonction (AstType.Fonction (info, li, b)) =
 let analyser (AstType.Programme (fonctions, prog)) =
   let depl = 0 in
   let main_reg = "SB" in
-  let func_reg = "LB" in
   let nf = List.map analyse_placement_fonction fonctions in
   let nb = analyse_placement_bloc depl main_reg prog in
   AstPlacement.Programme (nf, nb)
